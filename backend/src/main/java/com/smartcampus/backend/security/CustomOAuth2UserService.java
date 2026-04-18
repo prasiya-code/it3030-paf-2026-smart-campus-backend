@@ -52,12 +52,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
 
-        // Build authorities from DB roles
         Set<SimpleGrantedAuthority> authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
                 .collect(Collectors.toSet());
 
-        // Log roles and authorities for debugging
         List<String> dbRoles = user.getRoles().stream()
                 .map(Role::getName)
                 .collect(Collectors.toList());
@@ -102,7 +100,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         System.out.println("=== Creating new user ===");
         System.out.println("Creating user with email: " + email);
-
         System.out.println("Assigned role: " + userRole.getName());
 
         return userRepository.save(user);
@@ -121,7 +118,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             String email = oauth2User.getAttribute("email");
             System.out.println("Logged in user: " + email);
 
-            response.sendRedirect("http://localhost:3000/dashboard");
+            response.sendRedirect("http://localhost:5174/dashboard");
         }
     }
 }

@@ -2,6 +2,7 @@ package com.smartcampus.backend.config;
 
 import com.smartcampus.backend.security.CustomOAuth2UserService;
 import com.smartcampus.backend.security.CustomOidcUserService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -58,9 +59,13 @@ public class WebSecurityConfig {
                         .failureUrl("/login?error=true")
                 )
                 .logout(logout -> logout
-                        .logoutSuccessUrl("/")
+                        .logoutUrl("/api/logout")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
+                        .clearAuthentication(true)
+                        .logoutSuccessHandler((request, response, authentication) -> {
+                            response.setStatus(HttpServletResponse.SC_OK);
+                        })
                         .permitAll()
                 );
 

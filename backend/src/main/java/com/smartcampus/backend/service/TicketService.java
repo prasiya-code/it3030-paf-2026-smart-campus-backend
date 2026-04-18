@@ -9,9 +9,9 @@ import com.smartcampus.backend.enums.TicketPriority;
 import com.smartcampus.backend.enums.TicketStatus;
 import com.smartcampus.backend.exception.BadRequestException;
 import com.smartcampus.backend.exception.ResourceNotFoundException;
+import com.smartcampus.backend.repository.ResourceRepository;
 import com.smartcampus.backend.repository.TicketRepository;
 import com.smartcampus.backend.repository.UserRepository;
-import com.smartcampus.backend.repository.ResourceRepository;
 import com.smartcampus.backend.request.CreateTicketRequest;
 import com.smartcampus.backend.request.UpdateTicketRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,7 +94,6 @@ public class TicketService {
                     .orElseThrow(() -> new ResourceNotFoundException("User not found"));
             ticket.setAssignedTo(assignedTo);
 
-            // Notify assigned technician
             notificationService.createNotification(
                     assignedTo.getId(),
                     "Ticket Assigned",
@@ -115,7 +114,6 @@ public class TicketService {
 
         Ticket updated = ticketRepository.save(ticket);
 
-        // Notify user of status change
         if (oldStatus != ticket.getStatus()) {
             notificationService.createNotification(
                     ticket.getCreatedBy().getId(),
@@ -134,7 +132,6 @@ public class TicketService {
     public void deleteTicket(Long id, Long userId) {
         Ticket ticket = getTicketById(id);
 
-        // Only creator or admin can delete
         if (!ticket.getCreatedBy().getId().equals(userId)) {
             throw new BadRequestException("You can only delete your own tickets");
         }
