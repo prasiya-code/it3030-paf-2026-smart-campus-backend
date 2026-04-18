@@ -121,7 +121,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             String email = oauth2User.getAttribute("email");
             System.out.println("Logged in user: " + email);
 
-            response.sendRedirect("http://localhost:3000/dashboard");
+            response.sendRedirect("http://localhost:5174/dashboard");
         }
     }
 }
