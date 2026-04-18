@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
@@ -22,6 +23,7 @@ public class BookingController {
     private BookingService bookingService;
 
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Booking> createBooking(@Valid @RequestBody CreateBookingRequest request,
                                                  @AuthenticationPrincipal OAuth2User principal) {
         Long userId = extractUserId(principal);
@@ -30,6 +32,7 @@ public class BookingController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Booking>> getAllBookings(
             @RequestParam(required = false) BookingStatus status,
             @RequestParam(required = false) Long userId,
@@ -38,22 +41,26 @@ public class BookingController {
     }
 
     @GetMapping("/user/{userId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Booking>> getBookingsByUser(@PathVariable Long userId) {
         return ResponseEntity.ok(bookingService.getBookingsByUser(userId));
     }
 
     @GetMapping("/my-bookings")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Booking>> getMyBookings(@AuthenticationPrincipal OAuth2User principal) {
         Long userId = extractUserId(principal);
         return ResponseEntity.ok(bookingService.getBookingsByUser(userId));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Booking> getBookingById(@PathVariable Long id) {
         return ResponseEntity.ok(bookingService.getBookingById(id));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Booking> updateBooking(@PathVariable Long id,
                                                  @Valid @RequestBody UpdateBookingRequest request,
                                                  @AuthenticationPrincipal OAuth2User principal) {
@@ -62,6 +69,7 @@ public class BookingController {
     }
 
     @PostMapping("/{id}/cancel")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Booking> cancelBooking(@PathVariable Long id,
                                                  @AuthenticationPrincipal OAuth2User principal) {
         Long userId = extractUserId(principal);

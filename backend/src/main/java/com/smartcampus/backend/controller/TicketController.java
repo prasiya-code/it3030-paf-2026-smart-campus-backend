@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,7 @@ public class TicketController {
     private TicketService ticketService;
 
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Ticket> createTicket(@Valid @RequestBody CreateTicketRequest request,
                                                @AuthenticationPrincipal OAuth2User principal) {
         Long userId = extractUserId(principal);
@@ -33,6 +35,7 @@ public class TicketController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Ticket>> getAllTickets(
             @RequestParam(required = false) TicketStatus status,
             @RequestParam(required = false) TicketCategory category,
@@ -43,23 +46,27 @@ public class TicketController {
     }
 
     @GetMapping("/user/{userId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Ticket>> getTicketsByUser(@PathVariable Long userId) {
         return ResponseEntity.ok(ticketService.getTicketsByUser(userId));
     }
 
 
     @GetMapping("/my-tickets")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Ticket>> getMyTickets(@AuthenticationPrincipal OAuth2User principal) {
         Long userId = extractUserId(principal);
         return ResponseEntity.ok(ticketService.getTicketsByUser(userId));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Ticket> getTicketById(@PathVariable Long id) {
         return ResponseEntity.ok(ticketService.getTicketById(id));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
     public ResponseEntity<Ticket> updateTicket(@PathVariable Long id,
                                                @RequestBody UpdateTicketRequest request,
                                                @AuthenticationPrincipal OAuth2User principal) {
@@ -68,6 +75,7 @@ public class TicketController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteTicket(@PathVariable Long id,
                                           @AuthenticationPrincipal OAuth2User principal) {
         Long userId = extractUserId(principal);

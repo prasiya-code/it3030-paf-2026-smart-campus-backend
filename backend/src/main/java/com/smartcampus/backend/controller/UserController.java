@@ -1,18 +1,18 @@
 package com.smartcampus.backend.controller;
 
+import com.smartcampus.backend.entity.Role;
 import com.smartcampus.backend.entity.User;
+import com.smartcampus.backend.repository.RoleRepository;
 import com.smartcampus.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +26,12 @@ public class UserController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> getCurrentUser(
@@ -121,6 +127,172 @@ public class UserController {
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "Failed to update profile: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    // Admin user management endpoints
+    @GetMapping("/admin/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Map<String, Object>>> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        List<Map<String, Object>> userResponses = users.stream().map(user -> {
+            Map<String, Object> userMap = new HashMap<>();
+            userMap.put("id", user.getId());
+            userMap.put("firstName", user.getFirstName());
+            userMap.put("lastName", user.getLastName());
+            userMap.put("email", user.getEmail());
+            List<String> roles = user.getRoles().stream()
+                .map(role -> role.getName())
+                .collect(Collectors.toList());
+            userMap.put("role", roles.isEmpty() ? "USER" : roles.get(0));
+            userMap.put("authProvider", user.getAuthProvider());
+            userMap.put("createdAt", user.getCreatedAt());
+            return userMap;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(userResponses);
+    }
+
+    @PostMapping("/admin/users")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> createUser(@RequestBody Map<String, String> request) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            String email = request.get("email");
+            String firstName = request.get("firstName");
+            String lastName = request.get("lastName");
+            String password = request.get("password");
+            String role = request.get("role");
+
+            if (email == null || email.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Email is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            if (userRepository.findByEmail(email).isPresent()) {
+                response.put("success", false);
+                response.put("message", "User with this email already exists");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            User user = new User();
+            user.setEmail(email.trim());
+            user.setFirstName(firstName != null ? firstName.trim() : "");
+            user.setLastName(lastName != null ? lastName.trim() : "");
+            user.setPassword(passwordEncoder.encode(password));
+            user.setAuthProvider("LOCAL");
+
+            // Assign role to user
+            String userRole = (role != null && !role.trim().isEmpty()) ? role : "USER";
+            Optional<Role> roleOpt = roleRepository.findByName(userRole);
+            if (roleOpt.isEmpty()) {
+                Role newRole = new Role(userRole);
+                roleRepository.save(newRole);
+                user.getRoles().add(newRole);
+            } else {
+                user.getRoles().add(roleOpt.get());
+            }
+
+            User savedUser = userRepository.save(user);
+
+            response.put("success", true);
+            response.put("message", "User created successfully");
+            response.put("user", Map.of(
+                "id", savedUser.getId(),
+                "email", savedUser.getEmail(),
+                "firstName", savedUser.getFirstName(),
+                "lastName", savedUser.getLastName()
+            ));
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Failed to create user: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    @PutMapping("/admin/users/{userId}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> updateUserRole(
+            @PathVariable Long userId,
+            @RequestBody Map<String, String> request) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "User not found");
+                return ResponseEntity.status(404).body(response);
+            }
+
+            User user = userOpt.get();
+            String newRole = request.get("role");
+
+            if (newRole == null || newRole.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("message", "Role is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Find the role by name
+            Optional<Role> roleOpt = roleRepository.findByName(newRole);
+            if (roleOpt.isEmpty()) {
+                // Create the role if it doesn't exist
+                Role role = new Role(newRole);
+                roleRepository.save(role);
+                user.getRoles().clear();
+                user.getRoles().add(role);
+            } else {
+                user.getRoles().clear();
+                user.getRoles().add(roleOpt.get());
+            }
+
+            userRepository.save(user);
+
+            response.put("success", true);
+            response.put("message", "Role updated successfully");
+            response.put("role", newRole);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Failed to update role: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    @DeleteMapping("/admin/users/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> deleteUser(@PathVariable Long userId) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "User not found");
+                return ResponseEntity.status(404).body(response);
+            }
+
+            User user = userOpt.get();
+
+            // Clear user's roles first
+            user.getRoles().clear();
+            userRepository.save(user);
+
+            // Now delete the user
+            userRepository.deleteById(userId);
+
+            response.put("success", true);
+            response.put("message", "User deleted successfully");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Failed to delete user: " + e.getMessage());
             return ResponseEntity.status(500).body(response);
         }
     }

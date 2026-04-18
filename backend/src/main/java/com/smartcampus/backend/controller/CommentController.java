@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +22,7 @@ public class CommentController {
     private CommentService commentService;
 
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Comment> createComment(@Valid @RequestBody CreateCommentRequest request,
                                                 @AuthenticationPrincipal OAuth2User principal) {
         Long userId = extractUserId(principal);
@@ -29,11 +31,13 @@ public class CommentController {
     }
 
     @GetMapping("/ticket/{ticketId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Comment>> getCommentsByTicket(@PathVariable Long ticketId) {
         return ResponseEntity.ok(commentService.getCommentsByTicket(ticketId));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Comment> updateComment(@PathVariable Long id,
                                                   @RequestBody String newContent,
                                                   @AuthenticationPrincipal OAuth2User principal) {
@@ -42,6 +46,7 @@ public class CommentController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteComment(@PathVariable Long id,
                                            @AuthenticationPrincipal OAuth2User principal) {
         Long userId = extractUserId(principal);

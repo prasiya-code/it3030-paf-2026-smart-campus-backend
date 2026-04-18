@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,7 @@ public class ResourceController {
     private ResourceService resourceService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Resource> createResource(@Valid @RequestBody CreateResourceRequest request,
                                                    @AuthenticationPrincipal OAuth2User principal) {
         Resource resource = resourceService.createResource(request);
@@ -30,16 +32,19 @@ public class ResourceController {
     }
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Resource>> getAllResources() {
         return ResponseEntity.ok(resourceService.getAllResources());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Resource> getResourceById(@PathVariable Long id) {
         return ResponseEntity.ok(resourceService.getResourceById(id));
     }
 
     @GetMapping("/search")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<Resource>> searchResources(
             @RequestParam(required = false) ResourceType type,
             @RequestParam(required = false) String location,
@@ -50,12 +55,14 @@ public class ResourceController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Resource> updateResource(@PathVariable Long id,
                                                    @Valid @RequestBody UpdateResourceRequest request) {
         return ResponseEntity.ok(resourceService.updateResource(id, request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteResource(@PathVariable Long id,
                                                @AuthenticationPrincipal OAuth2User principal) {
         resourceService.deleteResource(id);
