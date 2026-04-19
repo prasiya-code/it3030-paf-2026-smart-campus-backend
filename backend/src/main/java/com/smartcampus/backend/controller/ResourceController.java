@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
@@ -23,8 +24,7 @@ public class ResourceController {
     private ResourceService resourceService;
 
     @PostMapping
-    public ResponseEntity<Resource> createResource(@Valid @RequestBody CreateResourceRequest request,
-                                                   @AuthenticationPrincipal OAuth2User principal) {
+    public ResponseEntity<Resource> createResource(@Valid @RequestBody CreateResourceRequest request) {
         Resource resource = resourceService.createResource(request);
         return new ResponseEntity<>(resource, HttpStatus.CREATED);
     }
@@ -56,8 +56,7 @@ public class ResourceController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteResource(@PathVariable Long id,
-                                               @AuthenticationPrincipal OAuth2User principal) {
+    public ResponseEntity<Void> deleteResource(@PathVariable Long id) {
         resourceService.deleteResource(id);
         return ResponseEntity.noContent().build();
     }

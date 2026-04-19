@@ -46,4 +46,8 @@ backend/src/main/resources/application.properties
 .DS_Store
 
 # Log files
-*.loguploads/
+*.log
+uploads/
+=======
+*.logsrc/main/resources/application.properties
+>>>>>>> dd03d7dca1a1b88c35d4768c42b013c2b4cae3b9
