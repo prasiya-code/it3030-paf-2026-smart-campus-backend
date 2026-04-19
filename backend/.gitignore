@@ -45,9 +45,3 @@ backend/src/main/resources/application.properties
 # Mac files
 .DS_Store
 
-# Log files
-*.log
-uploads/
-=======
-*.logsrc/main/resources/application.properties
->>>>>>> dd03d7dca1a1b88c35d4768c42b013c2b4cae3b9
