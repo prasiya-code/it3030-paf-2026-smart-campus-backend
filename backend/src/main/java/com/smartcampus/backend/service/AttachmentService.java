@@ -84,6 +84,11 @@ public class AttachmentService {
         return attachmentRepository.findByTicketId(ticketId);
     }
 
+    public Attachment getAttachmentById(Long attachmentId) {
+        return attachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Attachment not found"));
+    }
+
     @Transactional
     public void deleteAttachment(Long attachmentId, Long userId, boolean isAdmin) {
         Attachment attachment = attachmentRepository.findById(attachmentId)

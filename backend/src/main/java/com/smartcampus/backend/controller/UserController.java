@@ -9,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -123,5 +124,23 @@ public class UserController {
             response.put("message", "Failed to update profile: " + e.getMessage());
             return ResponseEntity.status(500).body(response);
         }
+    }
+
+    @GetMapping("/users/role/{roleName}")
+    public ResponseEntity<List<Map<String, Object>>> getUsersByRole(@PathVariable String roleName) {
+        List<User> users = userRepository.findAll().stream()
+            .filter(u -> u.getRoles().stream().anyMatch(r -> r.getName().equalsIgnoreCase(roleName)))
+            .collect(Collectors.toList());
+
+        List<Map<String, Object>> response = users.stream().map(u -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", u.getId());
+            map.put("firstName", u.getFirstName());
+            map.put("lastName", u.getLastName());
+            map.put("email", u.getEmail());
+            return map;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
     }
 }
