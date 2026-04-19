@@ -71,6 +71,9 @@ public class Ticket {
     @Column(name = "preferred_contact_phone")
     private String preferredContactPhone;
 
+    @Column(name = "first_response_at")
+    private LocalDateTime firstResponseAt;
+
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 

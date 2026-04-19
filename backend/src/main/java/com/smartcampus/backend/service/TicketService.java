@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -116,12 +117,27 @@ public class TicketService {
 
         if (request.getStatus() != null) {
             ticket.setStatus(request.getStatus());
+            
+            if (request.getStatus() == TicketStatus.IN_PROGRESS && ticket.getFirstResponseAt() == null) {
+                ticket.setFirstResponseAt(LocalDateTime.now());
+            } else if (request.getStatus() == TicketStatus.RESOLVED && ticket.getResolvedAt() == null) {
+                ticket.setResolvedAt(LocalDateTime.now());
+                if (ticket.getFirstResponseAt() == null) {
+                    ticket.setFirstResponseAt(LocalDateTime.now());
+                }
+            } else if (request.getStatus() == TicketStatus.CLOSED && ticket.getClosedAt() == null) {
+                ticket.setClosedAt(LocalDateTime.now());
+            }
         }
 
         if (request.getAssignedToId() != null) {
             User assignedTo = userRepository.findById(request.getAssignedToId())
                     .orElseThrow(() -> new ResourceNotFoundException("User not found"));
             ticket.setAssignedTo(assignedTo);
+            
+            if (ticket.getFirstResponseAt() == null) {
+                ticket.setFirstResponseAt(LocalDateTime.now());
+            }
 
             try {
                 notificationService.createNotification(
