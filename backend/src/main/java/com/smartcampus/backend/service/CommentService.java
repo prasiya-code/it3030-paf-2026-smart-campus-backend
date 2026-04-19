@@ -62,6 +62,16 @@ public class CommentService {
                 System.err.println("Failed to create notification for comment to ticket creator: " + ticket.getId() + ": " + e.getMessage());
                 e.printStackTrace();
             }
+            
+            // Set firstResponseAt if an admin or assigned staff comments
+            if (ticket.getFirstResponseAt() == null) {
+                boolean isStaff = user.getRoles().stream()
+                    .anyMatch(r -> r.getName().equals("ADMIN") || r.getName().equals("TECHNICIAN"));
+                if (isStaff) {
+                    ticket.setFirstResponseAt(java.time.LocalDateTime.now());
+                    ticketRepository.save(ticket);
+                }
+            }
         }
 
         // If assigned technician exists and is not the commenter, notify them too
