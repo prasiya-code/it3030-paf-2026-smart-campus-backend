@@ -13,10 +13,12 @@ import com.smartcampus.backend.repository.ResourceRepository;
 import com.smartcampus.backend.repository.UserRepository;
 import com.smartcampus.backend.request.CreateBookingRequest;
 import com.smartcampus.backend.request.UpdateBookingRequest;
+import com.smartcampus.backend.request.UserUpdateBookingRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -181,5 +183,74 @@ public class BookingService {
         );
 
         return cancelled;
+    }
+
+    @Transactional
+    public Booking updateUserBooking(Long id, UserUpdateBookingRequest request, Long userId) {
+        Booking booking = getBookingById(id);
+
+        // Validate ownership
+        if (!booking.getUser().getId().equals(userId)) {
+            throw new BadRequestException("You can only update your own bookings");
+        }
+
+        // Validate status - only PENDING bookings can be edited
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new BadRequestException("Only PENDING bookings can be edited");
+        }
+
+        // Store original values for conflict checking
+        LocalDate originalDate = booking.getBookingDate();
+        LocalTime originalStartTime = booking.getStartTime();
+        LocalTime originalEndTime = booking.getEndTime();
+        Long resourceId = booking.getResource().getId();
+
+        // Update booking details
+        if (request.getBookingDate() != null) {
+            booking.setBookingDate(request.getBookingDate());
+        }
+        if (request.getStartTime() != null) {
+            booking.setStartTime(request.getStartTime());
+        }
+        if (request.getEndTime() != null) {
+            booking.setEndTime(request.getEndTime());
+        }
+        if (request.getPurpose() != null) {
+            booking.setPurpose(request.getPurpose());
+        }
+        if (request.getExpectedAttendees() != null) {
+            booking.setExpectedAttendees(request.getExpectedAttendees());
+        }
+
+        // Validate time logic
+        if (booking.getStartTime().isAfter(booking.getEndTime()) ||
+            booking.getStartTime().equals(booking.getEndTime())) {
+            throw new BadRequestException("End time must be after start time");
+        }
+
+        // Check for conflicts with the updated booking details
+        // Exclude the current booking from conflict check
+        boolean hasConflict = bookingRepository.hasOverlappingBooking(
+                resourceId, booking.getBookingDate(), booking.getStartTime(),
+                booking.getEndTime(), booking.getId());
+
+        if (hasConflict) {
+            throw new BadRequestException("Resource is not available for the updated time slot");
+        }
+
+        // Save the updated booking
+        Booking updated = bookingRepository.save(booking);
+
+        // Send notification to user about successful update
+        notificationService.createNotification(
+                booking.getUser().getId(),
+                "Booking Updated",
+                "Your booking for " + booking.getResource().getName() + " has been updated successfully.",
+                com.smartcampus.backend.enums.NotificationType.BOOKING_UPDATED,
+                booking.getId(),
+                null
+        );
+
+        return updated;
     }
 }

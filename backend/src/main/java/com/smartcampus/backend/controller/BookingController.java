@@ -6,6 +6,7 @@ import com.smartcampus.backend.enums.BookingStatus;
 import com.smartcampus.backend.repository.UserRepository;
 import com.smartcampus.backend.request.CreateBookingRequest;
 import com.smartcampus.backend.request.UpdateBookingRequest;
+import com.smartcampus.backend.request.UserUpdateBookingRequest;
 import com.smartcampus.backend.service.BookingService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -117,6 +118,17 @@ public class BookingController {
     ) {
         Long adminId = extractUserId(authentication);
         return ResponseEntity.ok(bookingService.updateBookingStatus(id, request, adminId));
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Booking> updateUserBooking(
+            @PathVariable Long id,
+            @Valid @RequestBody UserUpdateBookingRequest request,
+            Authentication authentication
+    ) {
+        Long userId = extractUserId(authentication);
+        return ResponseEntity.ok(bookingService.updateUserBooking(id, request, userId));
     }
 
     @PostMapping("/{id}/cancel")
